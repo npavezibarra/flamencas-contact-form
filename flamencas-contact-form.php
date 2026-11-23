@@ -12,7 +12,7 @@ define( 'FLAMENCAS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 // Cargar estilos
 add_action( 'wp_enqueue_scripts', function() {
-    wp_enqueue_style( 'flamencas-form-style', FLAMENCAS_PLUGIN_URL . 'css/style.css' );
+    wp_enqueue_style( 'flamencas-form-style', FLAMENCAS_PLUGIN_URL . 'css/style.css', array(), '1.1' );
 });
 
 // Shortcode
@@ -36,7 +36,13 @@ add_action('init', function() {
         $duracion = sanitize_text_field($_POST['duracion']);
         $mensaje_usuario = sanitize_textarea_field($_POST['mensaje']);
 
-        $servicios = isset($_POST['servicios']) ? implode(', ', array_map('sanitize_text_field', $_POST['servicios'])) : 'Ninguno';
+        $servicios_array = isset($_POST['servicios']) && is_array($_POST['servicios']) 
+            ? array_map('sanitize_text_field', $_POST['servicios']) 
+            : ['Performance'];
+        if (!in_array('Performance', $servicios_array)) {
+            array_unshift($servicios_array, 'Performance');
+        }
+        $servicios = implode(', ', $servicios_array);
 
         $to = get_option('flamencas_email', get_option('admin_email'));
         $subject = 'Nueva solicitud de cotización - Flamencas';
@@ -60,8 +66,8 @@ add_action('init', function() {
 
         wp_mail($to, $subject, $message, $headers);
 
-        // Opcional: redirigir para evitar reenvío accidental
-        wp_redirect(add_query_arg('enviado', '1', $_SERVER['REQUEST_URI']));
+        // Redirigir para mostrar mensaje y evitar reenvío accidental
+        wp_redirect(add_query_arg('enviado', '1', $_SERVER['REQUEST_URI']) . '#flamencas-contacto');
         exit;
     }
 });
